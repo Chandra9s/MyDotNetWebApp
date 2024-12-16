@@ -16,8 +16,8 @@ jobs:
 
       - name: Add .NET to PATH
         run: |
-          echo 'export PATH=$PATH:/home/adminuser/.dotnet' >> $GITHUB_ENV
-          echo 'export DOTNET_ROOT=/home/adminuser/.dotnet' >> $GITHUB_ENV
+          echo "/home/adminuser/.dotnet" >> $GITHUB_PATH
+          echo "DOTNET_ROOT=/home/adminuser/.dotnet" >> $GITHUB_ENV
 
       - name: Verify .NET installation
         run: dotnet --info
