@@ -8,21 +8,16 @@ on:
 jobs:
   build-and-deploy:
     name: Build and Deploy to Azure
-    runs-on: self-hosted # Run on your self-hosted agent
+    runs-on: self-hosted # Use your self-hosted agent
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: '8.0.x'
-        env:
-          DOTNET_ROOT: ${{ runner.temp }}/.dotnet
-
-      - name: Update PATH for local dotnet installation
-        run: echo "${{ runner.temp }}/.dotnet" >> $GITHUB_PATH
+      - name: Add .NET to PATH
+        run: |
+          echo 'export PATH=$PATH:/home/adminuser/.dotnet' >> $GITHUB_ENV
+          echo 'export DOTNET_ROOT=/home/adminuser/.dotnet' >> $GITHUB_ENV
 
       - name: Verify .NET installation
         run: dotnet --info
