@@ -8,7 +8,7 @@ on:
 jobs:
   build-and-deploy:
     name: Build and Deploy to Azure
-    runs-on: self-hosted # Use GitHub-hosted runner
+    runs-on: self-hosted # Use the self-hosted runner
 
     steps:
       - name: Checkout code
@@ -19,10 +19,13 @@ jobs:
         with:
           dotnet-version: '8.0.x'
         env:
-          DOTNET_ROOT: ${{ runner.temp }}/.dotnet
+          DOTNET_ROOT: ${{ runner.temp }}/.dotnet # Override installation path
 
       - name: Add .NET tools to PATH
         run: echo "${{ runner.temp }}/.dotnet" >> $GITHUB_PATH
+
+      - name: Verify .NET installation
+        run: dotnet --info
 
       - name: Restore dependencies
         run: dotnet restore ./MyWebApp/MyWebApp.csproj
@@ -39,3 +42,4 @@ jobs:
           app-name: 'cssstatic' # Replace with your Azure App Service name
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: ./publish
+
