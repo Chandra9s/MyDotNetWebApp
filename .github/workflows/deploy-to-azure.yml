@@ -8,30 +8,32 @@ on:
 jobs:
   build-and-deploy:
     name: Build and Deploy to Azure
-    runs-on: self-hosted # Use your self-hosted runner 'azagent'
+    runs-on: self-hosted # Use GitHub-hosted runner
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '8.0.x'
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+        env:
+          DOTNET_ROOT: ${{ runner.temp }}/.dotnet
 
-    - name: Restore dependencies
-      run: dotnet restore ./MyWebApp/MyWebApp.csproj
+      - name: Restore dependencies
+        run: dotnet restore ./MyWebApp/MyWebApp.csproj
 
-    - name: Build application
-      run: dotnet build ./MyWebApp/MyWebApp.csproj --configuration Release
+      - name: Build application
+        run: dotnet build ./MyWebApp/MyWebApp.csproj --configuration Release
 
-    - name: Publish application
-      run: dotnet publish ./MyWebApp/MyWebApp.csproj --configuration Release --output ./publish
+      - name: Publish application
+        run: dotnet publish ./MyWebApp/MyWebApp.csproj --configuration Release --output ./publish
 
-    - name: Deploy to Azure Web App
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: 'cssstatic' # Replace with your Azure App Service name
-        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-        package: ./publish
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'cssstatic' # Replace with your Azure App Service name
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./publish
 
