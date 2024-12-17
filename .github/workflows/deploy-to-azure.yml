@@ -69,12 +69,25 @@ jobs:
           echo "Azure login successful!"
           rm -f azure_credentials.json
 
-      # Step 7: Verify Azure Login
-      - name: Verify Azure Login
+      # Step 7: Build and Publish Application
+      - name: Publish application
         run: |
-          az account show
+          dotnet publish ./MyWebApp/MyWebApp.csproj --configuration Release --output ./publish
+          echo "Checking publish directory..."
+          ls -la ./publish
 
-      # Step 8: Deploy to Azure Web App
+      # Step 8: Verify publish directory before deployment
+      - name: Verify publish directory
+        run: |
+          if [ -d "./publish" ]; then
+            echo "Publish directory exists."
+            ls -la ./publish
+          else
+            echo "Publish directory does not exist!"
+            exit 1
+          fi
+
+      # Step 9: Deploy to Azure Web App
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
