@@ -3,81 +3,71 @@ name: Deploy .NET App to Azure App Service
 on:
   push:
     branches:
-      - main # Trigger the workflow when changes are pushed to 'main'
+      - main
 
 jobs:
   build-and-deploy:
     name: Build and Deploy to Azure
-    runs-on: self-hosted # Use your self-hosted agent
+    runs-on: self-hosted
 
     steps:
-      # Step 1: Checkout the code
+      # Step 1: Install Azure CLI
+      - name: Install Azure CLI
+        run: |
+          if ! command -v az &> /dev/null; then
+            echo "Azure CLI not found. Installing..."
+            curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          fi
+          az --version
+
+      # Step 2: Checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Add .NET to PATH
+      # Step 3: Add .NET to PATH
       - name: Add .NET to PATH
         run: |
-          echo "Adding .NET to PATH..."
           echo "/home/adminuser/.dotnet" >> $GITHUB_PATH
           echo "DOTNET_ROOT=/home/adminuser/.dotnet" >> $GITHUB_ENV
-          echo "Updated PATH: $PATH"
-        shell: bash
 
-      # Step 3: Verify .NET Installation
+      # Step 4: Verify .NET Installation
       - name: Verify .NET installation
-        run: |
-          echo "Verifying .NET installation..."
-          dotnet --info
+        run: dotnet --info
 
-      # Step 4: Debug Secrets to Verify AZURE_CREDENTIALS
-      - name: Debug AZURE_CREDENTIALS
+      # Step 5: Debug Secret Length
+      - name: Debug Secret Length
         run: |
-          echo "Debugging AZURE_CREDENTIALS secret length..."
-          echo "Length of AZURE_CREDENTIALS: ${#${{ secrets.AZURE_CREDENTIALS }}}"
-        shell: bash
+          echo "Checking AZURE_CREDENTIALS length..."
+          echo "Length: ${#${{ secrets.AZURE_CREDENTIALS }}}"
 
-      # Step 5: Restore dependencies
+      # Step 6: Restore dependencies
       - name: Restore dependencies
-        run: |
-          echo "Restoring dependencies..."
-          dotnet restore ./MyWebApp/MyWebApp.csproj
+        run: dotnet restore ./MyWebApp/MyWebApp.csproj
 
-      # Step 6: Build application
+      # Step 7: Build application
       - name: Build application
-        run: |
-          echo "Building application..."
-          dotnet build ./MyWebApp/MyWebApp.csproj --configuration Release
+        run: dotnet build ./MyWebApp/MyWebApp.csproj --configuration Release
 
-      # Step 7: Publish application
+      # Step 8: Publish application
       - name: Publish application
-        run: |
-          echo "Publishing application..."
-          dotnet publish ./MyWebApp/MyWebApp.csproj --configuration Release --output ./publish
+        run: dotnet publish ./MyWebApp/MyWebApp.csproj --configuration Release --output ./publish
 
-      # Step 8: Azure Login with Debugging
+      # Step 9: Azure Login
       - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-        env:
-          DEBUG: true
-        continue-on-error: true
 
-      # Step 9: Verify Login and Azure Subscription
+      # Step 10: Verify Azure Login
       - name: Verify Azure Login
         run: |
-          echo "Verifying Azure Login..."
           az account show
-          echo "Listing subscriptions..."
           az account list --output table
 
-      # Step 10: Deploy to Azure Web App
+      # Step 11: Deploy to Azure Web App
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
-          app-name: 'cssstatic' # Replace with your Azure App Service name
+          app-name: 'cssstatic'
           package: ./publish
-        env:
-          DEBUG: true
 
