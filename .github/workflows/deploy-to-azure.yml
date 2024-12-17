@@ -34,11 +34,11 @@ jobs:
       - name: Verify .NET installation
         run: dotnet --info
 
-      # Step 5: Debug Secret Length
-      - name: Debug Secret Length
+      # Step 5: Debug Secret Content (Sanitized)
+      - name: Debug Secret Content
         run: |
-          echo "Checking AZURE_CREDENTIALS length..."
-          echo "Length: ${#${{ secrets.AZURE_CREDENTIALS }}}"
+          echo "Checking AZURE_CREDENTIALS format..."
+          echo "${{ secrets.AZURE_CREDENTIALS }}" | jq '.'
 
       # Step 6: Restore dependencies
       - name: Restore dependencies
@@ -52,11 +52,32 @@ jobs:
       - name: Publish application
         run: dotnet publish ./MyWebApp/MyWebApp.csproj --configuration Release --output ./publish
 
-      # Step 9: Azure Login
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      # Step 9: Manual Azure Login
+      - name: Azure Login with Service Principal
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+        run: |
+          echo "$AZURE_CREDENTIALS" > azure_credentials.json
+          CLIENT_ID=$(jq -r '.clientId' azure_credentials.json)
+          CLIENT_SECRET=$(jq -r '.clientSecret' azure_credentials.json)
+          TENANT_ID=$(jq -r '.tenantId' azure_credentials.json)
+          SUBSCRIPTION_ID=$(jq -r '.subscriptionId' azure_credentials.json)
+
+          if [[ -z "$CLIENT_ID" || -z "$CLIENT_SECRET" || -z "$TENANT_ID" || -z "$SUBSCRIPTION_ID" ]]; then
+            echo "Error: Missing required fields in AZURE_CREDENTIALS"
+            exit 1
+          fi
+
+          echo "Logging in to Azure CLI..."
+          az login --service-principal \
+            --username "$CLIENT_ID" \
+            --password "$CLIENT_SECRET" \
+            --tenant "$TENANT_ID" \
+            --output none
+
+          az account set --subscription "$SUBSCRIPTION_ID"
+          echo "Azure login successful!"
+          rm -f azure_credentials.json
 
       # Step 10: Verify Azure Login
       - name: Verify Azure Login
