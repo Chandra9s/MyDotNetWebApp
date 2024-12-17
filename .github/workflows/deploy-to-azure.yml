@@ -36,9 +36,16 @@ jobs:
 
       # Step 5: Debug Secret Content (Sanitized)
       - name: Debug Secret Content
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
         run: |
-          echo "Checking AZURE_CREDENTIALS format..."
-          echo "${{ secrets.AZURE_CREDENTIALS }}" | jq '.'
+          if [[ -z "$AZURE_CREDENTIALS" ]]; then
+            echo "AZURE_CREDENTIALS is empty!"
+            exit 1
+          else
+            echo "AZURE_CREDENTIALS is set."
+            echo "$AZURE_CREDENTIALS" | jq '.'
+          fi
 
       # Step 6: Restore dependencies
       - name: Restore dependencies
@@ -52,7 +59,7 @@ jobs:
       - name: Publish application
         run: dotnet publish ./MyWebApp/MyWebApp.csproj --configuration Release --output ./publish
 
-      # Step 9: Manual Azure Login
+      # Step 9: Azure Login with Service Principal
       - name: Azure Login with Service Principal
         env:
           AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
@@ -65,6 +72,7 @@ jobs:
 
           if [[ -z "$CLIENT_ID" || -z "$CLIENT_SECRET" || -z "$TENANT_ID" || -z "$SUBSCRIPTION_ID" ]]; then
             echo "Error: Missing required fields in AZURE_CREDENTIALS"
+            cat azure_credentials.json
             exit 1
           fi
 
