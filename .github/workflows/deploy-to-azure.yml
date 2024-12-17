@@ -9,6 +9,7 @@ jobs:
   build-and-deploy:
     name: Build and Deploy to Azure
     runs-on: self-hosted
+    environment: AZURE_CREDENTIALS  # Declare the environment explicitly
 
     steps:
       # Step 1: Install Azure CLI
@@ -47,37 +48,18 @@ jobs:
             echo "Length of AZURE_CREDENTIALS: ${#AZURE_CREDENTIALS}"
           fi
 
-      # Step 6: Restore dependencies
-      - name: Restore dependencies
-        run: dotnet restore ./MyWebApp/MyWebApp.csproj
-
-      # Step 7: Build application
-      - name: Build application
-        run: dotnet build ./MyWebApp/MyWebApp.csproj --configuration Release
-
-      # Step 8: Publish application
-      - name: Publish application
-        run: dotnet publish ./MyWebApp/MyWebApp.csproj --configuration Release --output ./publish
-
-      # Step 9: Azure Login with Service Principal
+      # Step 6: Azure Login with Service Principal
       - name: Azure Login with Service Principal
         env:
           AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
         run: |
-          echo "Parsing AZURE_CREDENTIALS..."
           echo "$AZURE_CREDENTIALS" > azure_credentials.json
           CLIENT_ID=$(jq -r '.clientId' azure_credentials.json)
           CLIENT_SECRET=$(jq -r '.clientSecret' azure_credentials.json)
           TENANT_ID=$(jq -r '.tenantId' azure_credentials.json)
           SUBSCRIPTION_ID=$(jq -r '.subscriptionId' azure_credentials.json)
 
-          if [[ -z "$CLIENT_ID" || -z "$CLIENT_SECRET" || -z "$TENANT_ID" || -z "$SUBSCRIPTION_ID" ]]; then
-            echo "Error: Missing fields in AZURE_CREDENTIALS"
-            cat azure_credentials.json
-            exit 1
-          fi
-
-          echo "Logging into Azure CLI..."
+          echo "Logging in with Service Principal..."
           az login --service-principal \
             --username "$CLIENT_ID" \
             --password "$CLIENT_SECRET" \
@@ -85,15 +67,14 @@ jobs:
 
           az account set --subscription "$SUBSCRIPTION_ID"
           echo "Azure login successful!"
-          az account show
+          rm -f azure_credentials.json
 
-      # Step 10: Verify Azure Login
+      # Step 7: Verify Azure Login
       - name: Verify Azure Login
         run: |
           az account show
-          az account list --output table
 
-      # Step 11: Deploy to Azure Web App
+      # Step 8: Deploy to Azure Web App
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
