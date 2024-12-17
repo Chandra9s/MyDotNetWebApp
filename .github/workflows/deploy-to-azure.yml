@@ -11,34 +11,73 @@ jobs:
     runs-on: self-hosted # Use your self-hosted agent
 
     steps:
+      # Step 1: Checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Step 2: Add .NET to PATH
       - name: Add .NET to PATH
         run: |
+          echo "Adding .NET to PATH..."
           echo "/home/adminuser/.dotnet" >> $GITHUB_PATH
           echo "DOTNET_ROOT=/home/adminuser/.dotnet" >> $GITHUB_ENV
+          echo "Updated PATH: $PATH"
+        shell: bash
 
+      # Step 3: Verify .NET Installation
       - name: Verify .NET installation
-        run: dotnet --info
+        run: |
+          echo "Verifying .NET installation..."
+          dotnet --info
 
+      # Step 4: Debug Secrets to Verify AZURE_CREDENTIALS
+      - name: Debug AZURE_CREDENTIALS
+        run: |
+          echo "Debugging AZURE_CREDENTIALS secret length..."
+          echo "Length of AZURE_CREDENTIALS: ${#${{ secrets.AZURE_CREDENTIALS }}}"
+        shell: bash
+
+      # Step 5: Restore dependencies
       - name: Restore dependencies
-        run: dotnet restore ./MyWebApp/MyWebApp.csproj
+        run: |
+          echo "Restoring dependencies..."
+          dotnet restore ./MyWebApp/MyWebApp.csproj
 
+      # Step 6: Build application
       - name: Build application
-        run: dotnet build ./MyWebApp/MyWebApp.csproj --configuration Release
+        run: |
+          echo "Building application..."
+          dotnet build ./MyWebApp/MyWebApp.csproj --configuration Release
 
+      # Step 7: Publish application
       - name: Publish application
-        run: dotnet publish ./MyWebApp/MyWebApp.csproj --configuration Release --output ./publish
+        run: |
+          echo "Publishing application..."
+          dotnet publish ./MyWebApp/MyWebApp.csproj --configuration Release --output ./publish
 
+      # Step 8: Azure Login with Debugging
       - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
+        env:
+          DEBUG: true
+        continue-on-error: true
 
+      # Step 9: Verify Login and Azure Subscription
+      - name: Verify Azure Login
+        run: |
+          echo "Verifying Azure Login..."
+          az account show
+          echo "Listing subscriptions..."
+          az account list --output table
+
+      # Step 10: Deploy to Azure Web App
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
           app-name: 'cssstatic' # Replace with your Azure App Service name
           package: ./publish
+        env:
+          DEBUG: true
 
